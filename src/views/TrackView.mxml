@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:View xmlns:fx="http://ns.adobe.com/mxml/2009" 
+		xmlns:s="library://ns.adobe.com/flex/spark" title="Track Location"
+		 viewActivate="inti()">
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import flash.sensors.Geolocation;
+			import mx.core.FlexGlobals;
+			
+			public var myApp:MTALocationTracker = FlexGlobals.topLevelApplication as MTALocationTracker;
+			
+			[Bindable]
+			public var tempGeo:Geolocation;
+
+			private function inti():void
+			{
+				startBtn.setStyle("chromeColor", 0x71919e);
+				stopBtn.setStyle("chromeColor", 0xd41243);
+			}
+			
+			protected function startHandler(event:MouseEvent):void
+			{				
+				
+				if (!myApp.geoState && myApp.geoSupport){
+					myApp.startGeo();
+					startBtn.setStyle("chromeColor", 0x6dc066);
+					stopBtn.setStyle("chromeColor", 0x71919e);
+				}
+				
+			}
+			
+			protected function stopHandler(event:MouseEvent):void
+			{
+				if (myApp.geoState && myApp.geoSupport){
+					myApp.stopGeo();
+					stopBtn.setStyle("chromeColor", 0xd41243);
+					startBtn.setStyle("chromeColor", 0x71919e);
+				}
+			}
+			
+		]]>
+	</fx:Script>
+	
+	
+	<s:VGroup width="100%" height="100%" paddingBottom="20" paddingLeft="20" paddingRight="20" paddingTop="20">
+			<s:Label text="Lat: {data.lat}"/>
+			<s:Label text="Lang: {data.long}"/>
+			<s:Label text="Speed (m/s): {data.speed}"/>
+			<s:Label text="Accuracy (meters): {data.accuracy}"/>
+			<s:Label text="Timestamp (ms): {data.timestamp}"/>
+			<s:Label text="Heading (true north): {data.heading}"/>
+			<s:Label text="Time: {data.systimestamp}"/>
+			<s:HGroup width="100%">
+				<s:Button id="startBtn" label="Start" width="50%" click="startHandler(event)"/>
+				<s:Button id="stopBtn" label="Stop" width="50%" click="stopHandler(event)"/>
+				
+			</s:HGroup>
+			<s:Label id="errors" text="{data.errors}"/>
+	</s:VGroup>
+</s:View>

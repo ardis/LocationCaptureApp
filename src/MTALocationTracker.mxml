@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:TabbedViewNavigatorApplication xmlns:fx="http://ns.adobe.com/mxml/2009" 
+								  xmlns:s="library://ns.adobe.com/flex/spark" applicationDPI="160"
+								   applicationComplete="init()">
+	
+	
+	
+	<s:ViewNavigator id="track" label="Location" width="100%" height="100%" firstView="views.TrackView"/>
+	<!--<s:ViewNavigator id="settings" label="Settings" width="100%" height="100%" firstView="views.SettingsView"/>-->
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<fx:Script>
+		<![CDATA[
+			import flash.sensors.Geolocation;
+			
+			import as3.mongo.Mongo;
+			import as3.mongo.db.DB;
+			import as3.mongo.db.credentials.Credentials;
+			import as3.mongo.db.document.Document;
+			
+			public var geo:Geolocation;
+			public var mongo:Mongo;
+			
+			public var geoState:Boolean = false;
+			public var geoSupport:Boolean;
+			public var tripID:int = Math.random()*100000;
+			
+			public var errors:String;
+			
+			public function init():void{
+				//create location object
+				//geo = new Geolocation();
+				//geo.addEventListener(GeolocationEvent.UPDATE, updateHandler);
+				
+				//create mongo db connection
+				mongo = new Mongo("widmore.mongohq.com", 10000);
+				mongo.db("mtalocation").connected.add(onDBConnected);
+				mongo.db("mtalocation").connect();
+
+			}
+			
+			protected function updateHandler(event:GeolocationEvent):void
+			{
+				trace(event.latitude, event.longitude, event.timestamp, event.horizontalAccuracy);
+				
+				var locPoint:Document = new Document("tripId:"+tripID, "systemtimestamp:"+new Date(), "timestamp:"+event.timestamp, "lat:"+event.latitude, "long:"+event.longitude, "accuracy:"+event.horizontalAccuracy, "speed:"+event.speed, "heading:"+event.heading );
+				mongo.db("mtalocation").collection("point").insert(locPoint);
+				var loc:Object = {errors:errors,lat:event.latitude, long:event.longitude, timestamp:event.timestamp, accuracy:event.horizontalAccuracy, speed:event.speed, heading:event.heading, systimestamp:new Date().toLocaleString()}
+				track.activeView.data = loc;
+				
+			}
+			
+			
+			public function onDBConnected(db:DB):void
+			{
+				/* First create a Credentials object using your username/password */
+				var dbCredentials:Credentials = new Credentials("mta", "mta");
+				
+				/* Add callback handlers for authentication problems and authenticated
+				Signals objects */
+				mongo.db("mtalocation").authenticationProblem.add(onAuthenticationProblem);
+				mongo.db("mtalocation").authenticated.add(onDBAuthenticated);
+				
+				/* Set the credentials to the database */
+				mongo.db("mtalocation").setCredentials(dbCredentials);
+				
+				/* Run the authenticate mongodb command */
+				mongo.db("mtalocation").authenticate();
+			}
+			
+			public function onAuthenticationProblem(db:DB):void
+			{
+				trace("There was a problem authenticating with the database.");
+			}
+			
+			public function onDBAuthenticated(db:DB):void
+			{
+				trace("connected succesfully");
+				
+				errors = "connected";
+				
+				if (Geolocation.isSupported)
+				{
+					//Initialize the location sensor.
+					geo = new Geolocation();
+					trace("geo ok");
+					if(!geo.muted){
+						//Set interval to 5 sec
+						geo.setRequestedUpdateInterval(5000);
+						//Register to receive location updates.
+						//geo.addEventListener(GeolocationEvent.UPDATE, updateHandler);
+						
+						geoState = false;
+						trace("geo ok");
+					}
+					
+					geoSupport = true;
+				}
+				else{
+					geoSupport = false;
+				}
+								
+			}
+			
+			public function startGeo():void{
+				geo.addEventListener(GeolocationEvent.UPDATE, updateHandler);
+				//geo.addEventListener(Event.ACTIVATE, updateHandler);
+				geoState = true;
+			}
+			
+			public function stopGeo():void{
+				geo.removeEventListener(GeolocationEvent.UPDATE, updateHandler);
+				geoState = false;
+			}
+			
+		]]>
+	</fx:Script>
+</s:TabbedViewNavigatorApplication>
